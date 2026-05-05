@@ -34,14 +34,14 @@ export default function Footer() {
 
         {/* Social */}
         <a
-          href="https://github.com/yourusername"
+          href="https://github.com/SuraBon"
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
           aria-label="GitHub profile (opens in new tab)"
         >
           <Globe size={14} aria-hidden="true" />
-          GitHub
+          SuraBon
         </a>
       </div>
     </footer>

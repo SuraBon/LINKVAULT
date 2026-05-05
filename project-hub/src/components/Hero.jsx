@@ -62,17 +62,18 @@ export default function Hero({ totalProjects }) {
           </button>
 
           <a
-            href="https://github.com/yourusername"
+            href="https://github.com/SuraBon"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white dark:bg-white/10 hover:bg-gray-50 dark:hover:bg-white/15 text-gray-700 dark:text-gray-200 font-semibold text-sm border border-gray-200 dark:border-white/20 shadow-sm transition-all duration-200 hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400"
           >
           <Globe size={16} aria-hidden="true" />
-            GitHub
+            GitHub — SuraBon
           </a>
 
           <a
             href="mailto:your@email.com"
+            // TODO: replace with your real email
             className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white dark:bg-white/10 hover:bg-gray-50 dark:hover:bg-white/15 text-gray-700 dark:text-gray-200 font-semibold text-sm border border-gray-200 dark:border-white/20 shadow-sm transition-all duration-200 hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400"
           >
             <Mail size={16} aria-hidden="true" />

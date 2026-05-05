@@ -11,8 +11,8 @@ const CONTACTS = [
   {
     icon: <Globe size={20} aria-hidden="true" />,
     label: "GitHub",
-    value: "github.com/yourusername",
-    href: "https://github.com/yourusername",
+    value: "github.com/SuraBon",
+    href: "https://github.com/SuraBon",
     external: true,
   },
   {
