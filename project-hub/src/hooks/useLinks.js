@@ -12,6 +12,8 @@ export function useLinks() {
   const [copiedId, setCopiedId] = useState("");
   const [status, setStatus] = useState(SHEETS_API_URL ? "กำลังโหลดจาก Google Sheets..." : "ยังไม่ได้เชื่อม Google Sheets");
   const [isLoading, setIsLoading] = useState(Boolean(SHEETS_API_URL));
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [editingId, setEditingId] = useState("");
 
@@ -30,9 +32,11 @@ export function useLinks() {
         if (!active) return;
         setLinks(data.links || []);
         setStatus("เชื่อม Google Sheets แล้ว");
+        setIsConnected(true);
       } catch (error) {
         if (!active) return;
         setStatus(`โหลดจาก Google Sheets ไม่สำเร็จ: ${error.message}`);
+        setIsConnected(false);
       } finally {
         if (active) setIsLoading(false);
       }
@@ -83,6 +87,22 @@ export function useLinks() {
     });
   }
 
+  async function reload() {
+    if (!SHEETS_API_URL) return;
+    try {
+      setIsRefreshing(true);
+      const data = await sheetsRequest({ action: "list" });
+      setLinks(data.links || []);
+      setStatus("เชื่อม Google Sheets แล้ว");
+      setIsConnected(true);
+    } catch (error) {
+      setStatus(`ดึงข้อมูลไม่สำเร็จ: ${error.message}`);
+      setIsConnected(false);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }
+
   async function saveLink() {
     const title = form.title.trim();
     const url = normalizeUrl(form.url);
@@ -90,8 +110,15 @@ export function useLinks() {
     const description = form.description.trim();
     if (!title || !url || !description) return false;
 
+    const generateId = () => {
+      if (typeof crypto !== "undefined" && crypto.randomUUID) {
+        return crypto.randomUUID();
+      }
+      return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    };
+
     const savedLink = {
-      id: editingId || crypto.randomUUID(),
+      id: editingId || generateId(),
       title,
       url,
       category,
@@ -108,6 +135,7 @@ export function useLinks() {
         });
         setLinks((current) => upsertLink(current, data.link || savedLink, editingId));
         setStatus(editingId ? "แก้ไขรายการใน Google Sheets แล้ว" : "บันทึกลง Google Sheets แล้ว");
+        setIsConnected(true);
       } else {
         setLinks((current) => upsertLink(current, savedLink, editingId));
         setStatus(editingId ? "แก้ไขข้อมูลในเครื่องแล้ว" : "บันทึกในเครื่อง เพราะยังไม่ได้เชื่อม Google Sheets");
@@ -118,6 +146,9 @@ export function useLinks() {
       return true;
     } catch (error) {
       setStatus(`บันทึกไม่สำเร็จ: ${error.message}`);
+      if (SHEETS_API_URL) {
+        setIsConnected(false);
+      }
       return false;
     } finally {
       setIsSaving(false);
@@ -130,12 +161,16 @@ export function useLinks() {
       if (SHEETS_API_URL) {
         await sheetsRequest({ action: "delete", id });
         setStatus("ลบจาก Google Sheets แล้ว");
+        setIsConnected(true);
       } else {
         setStatus("ลบจากข้อมูลในเครื่องแล้ว");
       }
       setLinks((current) => current.filter((item) => item.id !== id));
     } catch (error) {
       setStatus(`ลบไม่สำเร็จ: ${error.message}`);
+      if (SHEETS_API_URL) {
+        setIsConnected(false);
+      }
     } finally {
       setIsSaving(false);
     }
@@ -156,7 +191,10 @@ export function useLinks() {
     form,
     isLoading,
     isSaving,
-    isSheetsConnected: Boolean(SHEETS_API_URL),
+    isRefreshing,
+    isSheetsConnected: SHEETS_API_URL ? isConnected : false,
+    isSheetsConfigured: Boolean(SHEETS_API_URL),
+    hasLinks: links.length > 0,
     query,
     sortBy,
     status,
@@ -170,6 +208,7 @@ export function useLinks() {
     startCreate,
     startEdit,
     updateForm,
+    reload,
   };
 }
 

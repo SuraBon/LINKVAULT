@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Database, Loader2, Plus } from "lucide-react";
+import { Database, Loader2, Plus, RotateCw } from "lucide-react";
 import AppHeader from "./components/AppHeader";
 import CategoryFilter from "./components/CategoryFilter";
 import EmptyState from "./components/EmptyState";
@@ -46,9 +46,23 @@ export default function App() {
             <h2 className="text-2xl font-bold tracking-normal text-slate-950">จัดการลิงก์</h2>
             <p className="mt-1 text-sm font-medium text-slate-500">แบ่งตามหมวดหมู่ ค้นหาเร็ว และแก้ไขรายการได้ง่าย</p>
           </div>
-          <div className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-500 shadow-sm">
-            <Database className={links.isSheetsConnected ? "text-emerald-600" : "text-orange-500"} size={16} />
-            <span>{links.status}</span>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-500 shadow-sm">
+              <Database className={links.isSheetsConnected ? "text-emerald-600" : "text-orange-500"} size={16} />
+              <span>{links.status}</span>
+            </div>
+            {links.isSheetsConfigured && (
+              <button
+                type="button"
+                onClick={links.reload}
+                disabled={links.isRefreshing || links.isLoading}
+                title="ดึงข้อมูลล่าสุดจาก Google Sheets"
+                aria-label="ดึงข้อมูลล่าสุดจาก Google Sheets"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <RotateCw className={`h-4 w-4 ${links.isRefreshing ? "animate-spin" : ""}`} />
+              </button>
+            )}
           </div>
         </section>
 
@@ -86,7 +100,7 @@ export default function App() {
               ))}
             </div>
           ) : (
-            <EmptyState onCreate={openCreateModal} />
+            <EmptyState onCreate={openCreateModal} isEmptyDatabase={!links.hasLinks} />
           )}
         </section>
       </main>
@@ -105,6 +119,7 @@ export default function App() {
           form={links.form}
           isEditing={Boolean(links.editingId)}
           isSaving={links.isSaving}
+          categories={links.categories}
           onClose={closeModal}
           onSubmit={handleSubmit}
           onUpdate={links.updateForm}

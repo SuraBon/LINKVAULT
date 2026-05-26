@@ -1,6 +1,8 @@
 import { Loader2, X } from "lucide-react";
 
-export default function LinkFormModal({ form, isEditing, isSaving, onClose, onSubmit, onUpdate }) {
+export default function LinkFormModal({ form, isEditing, isSaving, categories = [], onClose, onSubmit, onUpdate }) {
+  const existingCategories = categories.filter((cat) => cat !== "ทั้งหมด" && cat !== "");
+
   return (
     <div className="fixed inset-0 z-40 flex items-end justify-center bg-slate-950/35 px-4 py-4 backdrop-blur-sm sm:items-center">
       <form onSubmit={onSubmit} className="w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-950/15">
@@ -27,8 +29,19 @@ export default function LinkFormModal({ form, isEditing, isSaving, onClose, onSu
           <Field label="URL">
             <input value={form.url} onChange={(event) => onUpdate("url", event.target.value)} className="input-control" placeholder="github.com" required />
           </Field>
-          <Field label="หมวดหมู่">
-            <input value={form.category} onChange={(event) => onUpdate("category", event.target.value)} className="input-control" placeholder="Docs, Tools, Design" />
+          <Field label="หมวดหมู่ (หากว่างจะบันทึกเป็น 'ทั่วไป')">
+            <input
+              list="categories-list"
+              value={form.category}
+              onChange={(event) => onUpdate("category", event.target.value)}
+              className="input-control"
+              placeholder="เช่น Docs, Tools, Design"
+            />
+            <datalist id="categories-list">
+              {existingCategories.map((cat) => (
+                <option key={cat} value={cat} />
+              ))}
+            </datalist>
           </Field>
           <Field label="คำอธิบาย">
             <textarea

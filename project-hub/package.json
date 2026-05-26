@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "homepage": "https://linkvault.vercel.app/",
+  "homepage": "https://linkvault-gi.vercel.app/",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

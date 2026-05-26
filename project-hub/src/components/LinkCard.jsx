@@ -1,11 +1,25 @@
+import { useState } from "react";
 import { getHost, getInitials } from "../utils/links";
 
 export default function LinkCard({ copied, disabled, link, onCopy, onEdit, onRemove }) {
+  const [imgError, setImgError] = useState(false);
+  const domain = getHost(link.url);
+  const faviconUrl = `https://www.google.com/s2/favicons?sz=64&domain=${domain}`;
+
   return (
     <article className="link-card">
       <div className="flex items-start gap-3">
-        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-slate-100 text-xs font-extrabold text-[#101a33]">
-          {getInitials(link.title)}
+        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-slate-100 overflow-hidden text-xs font-extrabold text-[#101a33]">
+          {!imgError ? (
+            <img
+              src={faviconUrl}
+              alt=""
+              onError={() => setImgError(true)}
+              className="h-6 w-6 object-contain"
+            />
+          ) : (
+            getInitials(link.title)
+          )}
         </div>
         <div className="min-w-0">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
@@ -29,7 +43,15 @@ export default function LinkCard({ copied, disabled, link, onCopy, onEdit, onRem
         <ActionButton disabled={disabled} onClick={() => onEdit(link)}>
           แก้ไข
         </ActionButton>
-        <ActionButton danger disabled={disabled} onClick={() => onRemove(link.id)}>
+        <ActionButton
+          danger
+          disabled={disabled}
+          onClick={() => {
+            if (window.confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบลิงก์ "${link.title}"?`)) {
+              onRemove(link.id);
+            }
+          }}
+        >
           ลบ
         </ActionButton>
       </div>
