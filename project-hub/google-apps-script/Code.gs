@@ -26,6 +26,12 @@ function doPost(e) {
       return jsonResponse({ ok: true, link });
     }
 
+    if (payload.action === "update") {
+      const link = sanitizeLink(payload.link);
+      updateLink(link);
+      return jsonResponse({ ok: true, link });
+    }
+
     if (payload.action === "delete") {
       deleteLink(String(payload.id || ""));
       return jsonResponse({ ok: true });
@@ -67,6 +73,25 @@ function deleteLink(id) {
   const ids = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
   const index = ids.findIndex((row) => String(row[0]) === id);
   if (index >= 0) sheet.deleteRow(index + 2);
+}
+
+function updateLink(link) {
+  const sheet = getSheet();
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) throw new Error("Link not found");
+
+  const ids = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+  const index = ids.findIndex((row) => String(row[0]) === link.id);
+  if (index < 0) throw new Error("Link not found");
+
+  sheet.getRange(index + 2, 1, 1, HEADERS.length).setValues([[
+    link.id,
+    link.title,
+    link.url,
+    link.category,
+    link.description,
+    link.createdAt,
+  ]]);
 }
 
 function sanitizeLink(link) {

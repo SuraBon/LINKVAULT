@@ -1,23 +1,18 @@
-import { SearchX } from "lucide-react";
+import { Search } from "lucide-react";
 
-export default function EmptyState({ onReset }) {
+export default function EmptyState({ onCreate }) {
   return (
-    <div className="flex flex-col items-center justify-center py-24 px-4 text-center">
-      <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-white/10 flex items-center justify-center mb-5">
-        <SearchX size={28} className="text-gray-400 dark:text-gray-500" aria-hidden="true" />
+    <div className="grid min-h-72 place-items-center rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center">
+      <div>
+        <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-slate-100 text-slate-500">
+          <Search size={22} />
+        </div>
+        <h3 className="mt-4 text-base font-bold">ไม่พบลิงก์ที่ตรงกับการค้นหา</h3>
+        <p className="mt-2 max-w-md text-sm leading-6 text-slate-500">ลองเปลี่ยนคำค้นหา เลือกหมวดหมู่อื่น หรือเพิ่มลิงก์ใหม่</p>
+        <button type="button" onClick={onCreate} className="mt-4 rounded-xl bg-[#101a33] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#162442]">
+          เพิ่มลิงก์
+        </button>
       </div>
-      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-        No projects found
-      </h3>
-      <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs mb-6">
-        No projects match your current search or filters. Try adjusting your query or clearing the filters.
-      </p>
-      <button
-        onClick={onReset}
-        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-      >
-        Reset Filters
-      </button>
     </div>
   );
 }
