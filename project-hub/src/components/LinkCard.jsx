@@ -1,10 +1,47 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { getHost, getInitials } from "../utils/links";
 
 export default function LinkCard({ copied, disabled, link, onCopy, onEdit, onRemove }) {
   const [imgError, setImgError] = useState(false);
+  const [status, setStatus] = useState("unknown"); // "unknown" | "checking" | "online" | "offline"
+
   const domain = getHost(link.url);
   const faviconUrl = `https://www.google.com/s2/favicons?sz=64&domain=${domain}`;
+
+  const checkHealth = useCallback(async () => {
+    setStatus("checking");
+    try {
+      const finalUrl = /^https?:\/\//i.test(link.url) ? link.url : `https://${link.url}`;
+      // Use AllOrigins CORS Proxy to fetch status code
+      const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(finalUrl)}`);
+      if (res.ok) {
+        setStatus("online");
+      } else {
+        setStatus("offline");
+      }
+    } catch {
+      setStatus("offline");
+    }
+  }, [link.url]);
+
+  // Check health on mount
+  useEffect(() => {
+    checkHealth();
+  }, [checkHealth]);
+
+  function getStatusColorClass() {
+    if (status === "checking") return "bg-amber-400";
+    if (status === "online") return "bg-emerald-500";
+    if (status === "offline") return "bg-red-500";
+    return "bg-slate-300";
+  }
+
+  function getStatusLabel() {
+    if (status === "checking") return "กำลังทดสอบ...";
+    if (status === "online") return "ออนไลน์ปกติ";
+    if (status === "offline") return "ขัดข้อง/เข้าถึงไม่ได้";
+    return "ยังไม่ได้ตรวจสอบ";
+  }
 
   return (
     <article className="link-card">
@@ -28,7 +65,18 @@ export default function LinkCard({ copied, disabled, link, onCopy, onEdit, onRem
               {link.category}
             </span>
           </div>
-          <p className="mt-1 truncate text-sm font-bold text-emerald-700">{getHost(link.url)}</p>
+          <p className="mt-1 flex items-center gap-2 text-sm font-bold text-emerald-700">
+            <button
+              type="button"
+              onClick={checkHealth}
+              disabled={status === "checking"}
+              title={`ตรวจสอบสถานะเว็บ: ${getStatusLabel()} (คลิกเพื่อทดสอบใหม่)`}
+              className="inline-flex cursor-pointer items-center border-none bg-transparent p-0 outline-none"
+            >
+              <span className={`inline-block h-2 w-2 rounded-full ${getStatusColorClass()} ${status === "checking" ? "animate-pulse" : ""}`} />
+            </button>
+            <span className="truncate">{domain}</span>
+          </p>
           <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-500">{link.description}</p>
         </div>
       </div>

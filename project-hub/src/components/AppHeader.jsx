@@ -23,14 +23,17 @@ export default function AppHeader({ query, onQueryChange, onCreate }) {
             <Plus size={17} />
             เพิ่มลิงก์
           </button>
-          <label className="relative min-w-0 sm:w-72">
+          <label className="relative min-w-0 sm:w-72 flex items-center">
             <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={17} />
             <input
               value={query}
               onChange={(event) => onQueryChange(event.target.value)}
-              className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm font-medium text-slate-900 outline-none transition focus:border-slate-400 focus:bg-white"
+              className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-14 text-sm font-medium text-slate-900 outline-none transition focus:border-slate-400 focus:bg-white"
               placeholder="ค้นหาชื่อเว็บ, URL, หมวดหมู่"
             />
+            <kbd className="pointer-events-none absolute right-3 hidden rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[9px] font-bold text-slate-400 shadow-sm sm:inline-block">
+              Ctrl K
+            </kbd>
           </label>
         </nav>
       </div>

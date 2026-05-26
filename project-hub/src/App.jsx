@@ -1,18 +1,29 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Database, Loader2, Plus, RotateCw } from "lucide-react";
 import AppHeader from "./components/AppHeader";
 import CategoryFilter from "./components/CategoryFilter";
 import EmptyState from "./components/EmptyState";
 import LinkCard from "./components/LinkCard";
 import LinkFormModal from "./components/LinkFormModal";
+import CommandPalette from "./components/CommandPalette";
 import { useLinks } from "./hooks/useLinks";
-import { groupLinksByCategory } from "./utils/links";
 
 export default function App() {
   const links = useLinks();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const groupedLinks = groupLinksByCategory(links.filteredLinks);
-  const categoryNames = Object.keys(groupedLinks);
+  const [isPaletteOpen, setIsPaletteOpen] = useState(false);
+
+  // Monitor keyboard Ctrl+K / Cmd+K to open Command Palette
+  useEffect(() => {
+    function handleKeyDown(e) {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setIsPaletteOpen((prev) => !prev);
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   function openCreateModal() {
     links.startCreate();
@@ -84,15 +95,14 @@ export default function App() {
                 <h3 className="mt-4 text-base font-bold">กำลังโหลดข้อมูลจาก Google Sheets</h3>
               </div>
             </div>
-          ) : categoryNames.length > 0 ? (
-            <div className="space-y-6">
-              {categoryNames.map((category) => (
-                <CategorySection
-                  key={category}
-                  category={category}
-                  copiedId={links.copiedId}
+          ) : links.filteredLinks.length > 0 ? (
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {links.filteredLinks.map((link) => (
+                <LinkCard
+                  key={link.id}
+                  copied={links.copiedId === link.id}
                   disabled={links.isSaving}
-                  links={groupedLinks[category]}
+                  link={link}
                   onCopy={links.copyLink}
                   onEdit={openEditModal}
                   onRemove={links.removeLink}
@@ -125,32 +135,11 @@ export default function App() {
           onUpdate={links.updateForm}
         />
       )}
+      <CommandPalette
+        isOpen={isPaletteOpen}
+        onClose={() => setIsPaletteOpen(false)}
+        links={links.filteredLinks}
+      />
     </div>
-  );
-}
-
-function CategorySection({ category, copiedId, disabled, links, onCopy, onEdit, onRemove }) {
-  return (
-    <section>
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <div>
-          <h3 className="text-base font-bold text-slate-950">{category}</h3>
-          <p className="text-sm font-medium text-slate-500">{links.length} รายการ</p>
-        </div>
-      </div>
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {links.map((link) => (
-          <LinkCard
-            key={link.id}
-            copied={copiedId === link.id}
-            disabled={disabled}
-            link={link}
-            onCopy={onCopy}
-            onEdit={onEdit}
-            onRemove={onRemove}
-          />
-        ))}
-      </div>
-    </section>
   );
 }
