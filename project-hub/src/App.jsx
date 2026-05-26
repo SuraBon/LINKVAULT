@@ -1,17 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  ArrowUpRight,
-  BookmarkPlus,
   Check,
   Copy,
+  Database,
   ExternalLink,
   Filter,
-  Globe2,
+  Folder,
   Link2,
   Loader2,
   Plus,
   Search,
   Trash2,
+  X,
 } from "lucide-react";
 
 const STORAGE_KEY = "link-vault-items";
@@ -92,12 +92,7 @@ function loadLocalLinks() {
 
 function App() {
   const [links, setLinks] = useState(loadLocalLinks);
-  const [form, setForm] = useState({
-    title: "",
-    url: "",
-    category: "",
-    description: "",
-  });
+  const [form, setForm] = useState({ title: "", url: "", category: "", description: "" });
   const [query, setQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState(ALL_CATEGORY);
   const [sortBy, setSortBy] = useState("newest");
@@ -105,6 +100,7 @@ function App() {
   const [status, setStatus] = useState(SHEETS_API_URL ? "กำลังโหลดจาก Google Sheets..." : "ยังไม่ได้เชื่อม Google Sheets");
   const [isLoading, setIsLoading] = useState(Boolean(SHEETS_API_URL));
   const [isSaving, setIsSaving] = useState(false);
+  const [isAddOpen, setIsAddOpen] = useState(false);
   const isSheetsConnected = Boolean(SHEETS_API_URL);
 
   useEffect(() => {
@@ -155,17 +151,12 @@ function App() {
       });
   }, [activeCategory, links, query, sortBy]);
 
-  const stats = useMemo(() => {
-    const categoryCount = new Set(links.map((item) => item.category).filter(Boolean)).size;
-    return [
-      { label: "ลิงก์ทั้งหมด", value: links.length },
-      { label: "หมวดหมู่", value: categoryCount },
-      { label: "ผลลัพธ์", value: filteredLinks.length },
-    ];
-  }, [filteredLinks.length, links]);
-
   function updateForm(field, value) {
     setForm((current) => ({ ...current, [field]: value }));
+  }
+
+  function closeAddModal() {
+    if (!isSaving) setIsAddOpen(false);
   }
 
   async function handleSubmit(event) {
@@ -175,7 +166,6 @@ function App() {
     const url = normalizeUrl(form.url);
     const category = form.category.trim() || "ทั่วไป";
     const description = form.description.trim();
-
     if (!title || !url || !description) return;
 
     const newLink = {
@@ -199,6 +189,7 @@ function App() {
       }
       setActiveCategory(ALL_CATEGORY);
       setForm({ title: "", url: "", category: "", description: "" });
+      setIsAddOpen(false);
     } catch (error) {
       setStatus(`บันทึกไม่สำเร็จ: ${error.message}`);
     } finally {
@@ -230,123 +221,58 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-white text-zinc-950">
-      <header className="sticky top-0 z-20 border-b border-zinc-200 bg-white/90 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-5 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
+    <div className="min-h-screen bg-[#f5f7fb] text-slate-950">
+      <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 shadow-sm shadow-slate-200/50 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-5 py-3 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-950 text-white">
-              <Link2 size={20} strokeWidth={2.4} />
+            <div className="grid h-9 w-9 place-items-center rounded-xl bg-[#101a33] text-white shadow-sm">
+              <Link2 size={18} strokeWidth={2.4} />
             </div>
-            <div>
-              <h1 className="text-xl font-semibold leading-tight tracking-normal">Link Vault</h1>
-              <p className="text-sm text-zinc-500">เก็บเว็บสำคัญ ค้นหาเร็ว เปิดใช้ได้ทันที</p>
+            <div className="leading-none">
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">LINKVAULT</p>
+              <h1 className="mt-1 text-base font-bold tracking-normal text-slate-950">คลังลิงก์เว็บไซต์</h1>
             </div>
           </div>
 
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <label className="relative min-w-0 sm:w-80">
-              <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
+          <nav className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <button
+              type="button"
+              onClick={() => setIsAddOpen(true)}
+              className="hidden h-10 items-center justify-center gap-2 rounded-xl bg-[#101a33] px-4 text-sm font-bold text-white shadow-sm transition hover:bg-[#162442] sm:inline-flex"
+            >
+              <Plus size={17} />
+              เพิ่มลิงก์
+            </button>
+            <label className="relative min-w-0 sm:w-72">
+              <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={17} />
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                className="h-11 w-full rounded-lg border border-zinc-200 bg-zinc-50 pl-10 pr-4 text-sm font-medium text-zinc-900 outline-none transition focus:border-teal-500 focus:bg-white"
+                className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm font-medium text-slate-900 outline-none transition focus:border-slate-400 focus:bg-white"
                 placeholder="ค้นหาชื่อเว็บ, URL, หมวดหมู่"
               />
             </label>
-            <a
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-zinc-950 px-4 text-sm font-semibold text-white transition hover:bg-zinc-800"
-              href="https://vercel.com/new"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Host Vercel
-              <ArrowUpRight size={17} />
-            </a>
-          </div>
+          </nav>
         </div>
       </header>
 
-      <main className="mx-auto grid max-w-7xl gap-6 px-5 py-6 sm:px-6 lg:grid-cols-[360px_minmax(0,1fr)] lg:px-8">
-        <aside className="lg:sticky lg:top-24 lg:self-start">
-          <form onSubmit={handleSubmit} className="rounded-lg border border-zinc-200 bg-zinc-50 p-5">
-            <div className="mb-5 flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-semibold">เพิ่มลิงก์ใหม่</h2>
-                <p className="mt-1 text-sm text-zinc-500">บันทึกชื่อเว็บ ลิงก์ และคำอธิบายสั้น ๆ</p>
-              </div>
-              <BookmarkPlus className="text-teal-600" size={24} />
-            </div>
-
-            <div className="space-y-4">
-              <Field label="ชื่อเว็บไซต์">
-                <input
-                  value={form.title}
-                  onChange={(event) => updateForm("title", event.target.value)}
-                  className="input-control"
-                  placeholder="เช่น GitHub"
-                  required
-                />
-              </Field>
-              <Field label="URL">
-                <input
-                  value={form.url}
-                  onChange={(event) => updateForm("url", event.target.value)}
-                  className="input-control"
-                  placeholder="github.com"
-                  required
-                />
-              </Field>
-              <Field label="หมวดหมู่">
-                <input
-                  value={form.category}
-                  onChange={(event) => updateForm("category", event.target.value)}
-                  className="input-control"
-                  placeholder="Docs, Tools, Design"
-                />
-              </Field>
-              <Field label="คำอธิบาย">
-                <textarea
-                  value={form.description}
-                  onChange={(event) => updateForm("description", event.target.value)}
-                  className="input-control min-h-28 resize-none"
-                  placeholder="เว็บนี้ใช้ทำอะไร เหมาะกับงานแบบไหน"
-                  required
-                />
-              </Field>
-            </div>
-
-            <button
-              type="submit"
-              disabled={isSaving}
-              className="mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-teal-600 px-4 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:bg-teal-300"
-            >
-              {isSaving ? <Loader2 className="animate-spin" size={18} /> : <Plus size={18} />}
-              {isSaving ? "กำลังบันทึก" : "เพิ่มเข้าคลังลิงก์"}
-            </button>
-
-            <div className="mt-4 rounded-lg border border-zinc-200 bg-white p-3 text-sm leading-6 text-zinc-600">
-              <div className="flex items-start gap-2">
-                <Globe2 className={isSheetsConnected ? "mt-0.5 text-teal-600" : "mt-0.5 text-amber-600"} size={17} />
-                <p>{status}</p>
-              </div>
-            </div>
-          </form>
-        </aside>
-
-        <section className="min-w-0">
-          <div className="grid gap-3 sm:grid-cols-3">
-            {stats.map((item) => (
-              <div key={item.label} className="rounded-lg border border-zinc-200 bg-white p-4">
-                <p className="text-sm font-medium text-zinc-500">{item.label}</p>
-                <p className="mt-2 text-3xl font-semibold tracking-normal text-zinc-950">{item.value}</p>
-              </div>
-            ))}
+      <main className="mx-auto max-w-6xl px-5 py-5 sm:px-6">
+        <section className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 className="text-2xl font-bold tracking-normal text-slate-950">จัดการลิงก์</h2>
+            <p className="mt-1 text-sm font-medium text-slate-500">บันทึกเว็บสำคัญ ค้นหาเร็ว และเปิดใช้งานได้ทันที</p>
           </div>
+          <div className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-500 shadow-sm">
+            <Database className={isSheetsConnected ? "text-emerald-600" : "text-orange-500"} size={16} />
+            <span>{status}</span>
+          </div>
+        </section>
 
-          <div className="mt-6 flex flex-col gap-4 border-b border-zinc-200 pb-4 xl:flex-row xl:items-center xl:justify-between">
+        <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="flex flex-col gap-3 border-b border-slate-100 p-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex min-w-0 flex-wrap items-center gap-2">
-              <span className="inline-flex h-9 items-center gap-2 text-sm font-semibold text-zinc-700">
-                <Filter size={17} />
+              <span className="inline-flex h-9 items-center gap-2 text-sm font-bold text-slate-700">
+                <Filter size={16} />
                 กรอง
               </span>
               {categories.map((category) => (
@@ -354,10 +280,10 @@ function App() {
                   key={category}
                   type="button"
                   onClick={() => setActiveCategory(category)}
-                  className={`h-9 rounded-lg border px-3 text-sm font-semibold transition ${
+                  className={`h-9 rounded-full border px-3 text-sm font-bold transition ${
                     activeCategory === category
-                      ? "border-teal-600 bg-teal-50 text-teal-700"
-                      : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300"
+                      ? "border-[#101a33] bg-[#101a33] text-white"
+                      : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
                   }`}
                 >
                   {category}
@@ -368,7 +294,7 @@ function App() {
             <select
               value={sortBy}
               onChange={(event) => setSortBy(event.target.value)}
-              className="h-10 rounded-lg border border-zinc-200 bg-white px-3 text-sm font-semibold text-zinc-700 outline-none transition focus:border-teal-500"
+              className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 outline-none transition focus:border-slate-400"
             >
               <option value="newest">ใหม่ล่าสุด</option>
               <option value="title">เรียงตามชื่อ</option>
@@ -376,71 +302,143 @@ function App() {
           </div>
 
           {isLoading ? (
-            <div className="mt-5 flex min-h-80 items-center justify-center rounded-lg border border-zinc-200 bg-zinc-50 p-8 text-center">
+            <div className="grid min-h-72 place-items-center p-8 text-center">
               <div>
-                <Loader2 className="mx-auto animate-spin text-teal-600" size={28} />
-                <h3 className="mt-4 text-lg font-semibold">กำลังโหลดข้อมูลจาก Google Sheets</h3>
+                <Loader2 className="mx-auto animate-spin text-[#101a33]" size={28} />
+                <h3 className="mt-4 text-base font-bold">กำลังโหลดข้อมูลจาก Google Sheets</h3>
               </div>
             </div>
           ) : filteredLinks.length > 0 ? (
-            <div className="mt-5 grid gap-4 xl:grid-cols-2">
+            <div className="divide-y divide-slate-100">
               {filteredLinks.map((item) => (
-                <article key={item.id} className="link-card">
-                  <div className="flex min-w-0 items-start gap-4">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-sm font-bold text-amber-800">
-                      {getInitials(item.title) || <Globe2 size={20} />}
+                <article key={item.id} className="link-row">
+                  <div className="flex min-w-0 items-start gap-3">
+                    <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-slate-100 text-xs font-extrabold text-[#101a33]">
+                      {getInitials(item.title) || <Folder size={18} />}
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex min-w-0 items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <h3 className="truncate text-base font-semibold text-zinc-950">{item.title}</h3>
-                          <p className="mt-1 truncate text-sm font-medium text-zinc-500">{getHost(item.url)}</p>
-                        </div>
-                        <span className="shrink-0 rounded-lg bg-zinc-100 px-2.5 py-1 text-xs font-semibold text-zinc-600">
+                    <div className="min-w-0">
+                      <div className="flex min-w-0 flex-wrap items-center gap-2">
+                        <h3 className="truncate text-sm font-bold text-slate-950">{item.title}</h3>
+                        <span className="rounded-lg bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-700">
                           {item.category}
                         </span>
                       </div>
-                      <p className="mt-3 line-clamp-2 text-sm leading-6 text-zinc-600">{item.description}</p>
+                      <p className="mt-1 truncate text-sm font-bold text-emerald-700">{getHost(item.url)}</p>
+                      <p className="mt-1 line-clamp-2 text-sm leading-6 text-slate-500">{item.description}</p>
                     </div>
                   </div>
 
-                  <div className="mt-5 flex items-center justify-between gap-3">
+                  <div className="flex shrink-0 items-center gap-2">
                     <a
                       href={item.url}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-zinc-950 px-3 text-sm font-semibold text-white transition hover:bg-zinc-800"
+                      aria-label="เปิดเว็บ"
+                      title="เปิดเว็บ"
+                      className="icon-action text-emerald-700 hover:border-emerald-200 hover:bg-emerald-50"
                     >
-                      เปิดเว็บ
-                      <ExternalLink size={16} />
+                      <ExternalLink size={17} />
                     </a>
-                    <div className="flex items-center gap-2">
-                      <IconButton label="คัดลอกลิงก์" onClick={() => copyLink(item)} disabled={isSaving}>
-                        {copiedId === item.id ? <Check size={17} /> : <Copy size={17} />}
-                      </IconButton>
-                      <IconButton label="ลบลิงก์" onClick={() => removeLink(item.id)} danger disabled={isSaving}>
-                        <Trash2 size={17} />
-                      </IconButton>
-                    </div>
+                    <IconButton label="คัดลอกลิงก์" onClick={() => copyLink(item)} disabled={isSaving}>
+                      {copiedId === item.id ? <Check size={17} /> : <Copy size={17} />}
+                    </IconButton>
+                    <IconButton label="ลบลิงก์" onClick={() => removeLink(item.id)} danger disabled={isSaving}>
+                      <Trash2 size={17} />
+                    </IconButton>
                   </div>
                 </article>
               ))}
             </div>
           ) : (
-            <div className="mt-5 flex min-h-80 items-center justify-center rounded-lg border border-dashed border-zinc-300 bg-zinc-50 p-8 text-center">
+            <div className="grid min-h-72 place-items-center p-8 text-center">
               <div>
-                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-lg bg-white text-zinc-500">
+                <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-slate-100 text-slate-500">
                   <Search size={22} />
                 </div>
-                <h3 className="mt-4 text-lg font-semibold">ไม่พบลิงก์ที่ตรงกับการค้นหา</h3>
-                <p className="mt-2 max-w-md text-sm leading-6 text-zinc-500">
-                  ลองเปลี่ยนคำค้นหา เลือกหมวดหมู่อื่น หรือเพิ่มลิงก์ใหม่จากฟอร์มด้านซ้าย
-                </p>
+                <h3 className="mt-4 text-base font-bold">ไม่พบลิงก์ที่ตรงกับการค้นหา</h3>
+                <p className="mt-2 max-w-md text-sm leading-6 text-slate-500">ลองเปลี่ยนคำค้นหา เลือกหมวดหมู่อื่น หรือเพิ่มลิงก์ใหม่จากปุ่มด้านบน</p>
               </div>
             </div>
           )}
         </section>
       </main>
+
+      <button
+        type="button"
+        onClick={() => setIsAddOpen(true)}
+        aria-label="เพิ่มลิงก์ใหม่"
+        className="fixed bottom-5 right-5 z-30 grid h-13 w-13 place-items-center rounded-2xl bg-[#101a33] text-white shadow-xl shadow-slate-900/20 transition hover:bg-[#162442] sm:hidden"
+      >
+        <Plus size={23} />
+      </button>
+
+      {isAddOpen && (
+        <AddLinkModal form={form} isSaving={isSaving} onClose={closeAddModal} onSubmit={handleSubmit} onUpdate={updateForm} />
+      )}
+    </div>
+  );
+}
+
+function AddLinkModal({ form, isSaving, onClose, onSubmit, onUpdate }) {
+  return (
+    <div className="fixed inset-0 z-40 flex items-end justify-center bg-slate-950/35 px-4 py-4 backdrop-blur-sm sm:items-center">
+      <form onSubmit={onSubmit} className="w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-950/15">
+        <div className="flex items-start justify-between gap-4 bg-[#101a33] px-5 py-4 text-white">
+          <div>
+            <h2 className="text-base font-bold">เพิ่มลิงก์ใหม่</h2>
+            <p className="mt-1 text-xs font-medium text-slate-300">กรอกข้อมูลเว็บแล้วบันทึกเข้าคลังลิงก์</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isSaving}
+            aria-label="ปิดหน้าต่างเพิ่มลิงก์"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-white/10 bg-white/10 text-white transition hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <X size={17} />
+          </button>
+        </div>
+
+        <div className="space-y-4 p-5">
+          <Field label="ชื่อเว็บไซต์">
+            <input autoFocus value={form.title} onChange={(event) => onUpdate("title", event.target.value)} className="input-control" placeholder="เช่น GitHub" required />
+          </Field>
+          <Field label="URL">
+            <input value={form.url} onChange={(event) => onUpdate("url", event.target.value)} className="input-control" placeholder="github.com" required />
+          </Field>
+          <Field label="หมวดหมู่">
+            <input value={form.category} onChange={(event) => onUpdate("category", event.target.value)} className="input-control" placeholder="Docs, Tools, Design" />
+          </Field>
+          <Field label="คำอธิบาย">
+            <textarea
+              value={form.description}
+              onChange={(event) => onUpdate("description", event.target.value)}
+              className="input-control min-h-24 resize-none"
+              placeholder="เว็บนี้ใช้ทำอะไร เหมาะกับงานแบบไหน"
+              required
+            />
+          </Field>
+        </div>
+
+        <div className="flex flex-col-reverse gap-3 border-t border-slate-100 p-5 sm:flex-row sm:justify-end">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isSaving}
+            className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            ยกเลิก
+          </button>
+          <button
+            type="submit"
+            disabled={isSaving}
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-[#101a33] px-4 text-sm font-bold text-white transition hover:bg-[#162442] disabled:cursor-not-allowed disabled:bg-slate-400"
+          >
+            {isSaving ? <Loader2 className="animate-spin" size={17} /> : <Plus size={17} />}
+            {isSaving ? "กำลังบันทึก" : "บันทึกลิงก์"}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }
@@ -448,7 +446,7 @@ function App() {
 function Field({ label, children }) {
   return (
     <label className="block">
-      <span className="mb-2 block text-sm font-semibold text-zinc-700">{label}</span>
+      <span className="mb-2 block text-sm font-bold text-slate-800">{label}</span>
       {children}
     </label>
   );
@@ -462,10 +460,8 @@ function IconButton({ label, onClick, danger = false, disabled = false, children
       title={label}
       onClick={onClick}
       disabled={disabled}
-      className={`inline-flex h-10 w-10 items-center justify-center rounded-lg border text-sm transition disabled:cursor-not-allowed disabled:opacity-55 ${
-        danger
-          ? "border-red-100 bg-red-50 text-red-600 hover:border-red-200 hover:bg-red-100"
-          : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50"
+      className={`icon-action disabled:cursor-not-allowed disabled:opacity-55 ${
+        danger ? "text-red-600 hover:border-red-200 hover:bg-red-50" : "text-slate-600 hover:border-slate-300 hover:bg-slate-50"
       }`}
     >
       {children}
