@@ -8,12 +8,15 @@ import {
   Filter,
   Globe2,
   Link2,
+  Loader2,
   Plus,
   Search,
   Trash2,
 } from "lucide-react";
 
 const STORAGE_KEY = "link-vault-items";
+const SHEETS_API_URL = import.meta.env.VITE_SHEETS_WEB_APP_URL?.trim() || "";
+const ALL_CATEGORY = "ทั้งหมด";
 
 const seedLinks = [
   {
@@ -42,6 +45,19 @@ const seedLinks = [
   },
 ];
 
+async function sheetsRequest(payload) {
+  const response = await fetch(SHEETS_API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify(payload),
+  });
+  const data = await response.json();
+  if (!response.ok || data.ok === false) {
+    throw new Error(data.error || "Google Sheets request failed");
+  }
+  return data;
+}
+
 function normalizeUrl(value) {
   const trimmed = value.trim();
   if (!trimmed) return "";
@@ -65,15 +81,17 @@ function getInitials(title) {
     .toUpperCase();
 }
 
+function loadLocalLinks() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return saved ? JSON.parse(saved) : seedLinks;
+  } catch {
+    return seedLinks;
+  }
+}
+
 function App() {
-  const [links, setLinks] = useState(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      return saved ? JSON.parse(saved) : seedLinks;
-    } catch {
-      return seedLinks;
-    }
-  });
+  const [links, setLinks] = useState(loadLocalLinks);
   const [form, setForm] = useState({
     title: "",
     url: "",
@@ -81,24 +99,53 @@ function App() {
     description: "",
   });
   const [query, setQuery] = useState("");
-  const [activeCategory, setActiveCategory] = useState("ทั้งหมด");
+  const [activeCategory, setActiveCategory] = useState(ALL_CATEGORY);
   const [sortBy, setSortBy] = useState("newest");
   const [copiedId, setCopiedId] = useState("");
+  const [status, setStatus] = useState(SHEETS_API_URL ? "กำลังโหลดจาก Google Sheets..." : "ยังไม่ได้เชื่อม Google Sheets");
+  const [isLoading, setIsLoading] = useState(Boolean(SHEETS_API_URL));
+  const [isSaving, setIsSaving] = useState(false);
+  const isSheetsConnected = Boolean(SHEETS_API_URL);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(links));
   }, [links]);
 
+  useEffect(() => {
+    if (!SHEETS_API_URL) return;
+
+    let active = true;
+    async function loadFromSheets() {
+      try {
+        setIsLoading(true);
+        const data = await sheetsRequest({ action: "list" });
+        if (!active) return;
+        setLinks(data.links || []);
+        setStatus("เชื่อม Google Sheets แล้ว");
+      } catch (error) {
+        if (!active) return;
+        setStatus(`โหลดจาก Google Sheets ไม่สำเร็จ: ${error.message}`);
+      } finally {
+        if (active) setIsLoading(false);
+      }
+    }
+
+    loadFromSheets();
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const categories = useMemo(() => {
     const unique = Array.from(new Set(links.map((item) => item.category).filter(Boolean)));
-    return ["ทั้งหมด", ...unique];
+    return [ALL_CATEGORY, ...unique];
   }, [links]);
 
   const filteredLinks = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
     return links
       .filter((item) => {
-        const matchesCategory = activeCategory === "ทั้งหมด" || item.category === activeCategory;
+        const matchesCategory = activeCategory === ALL_CATEGORY || item.category === activeCategory;
         const searchable = `${item.title} ${item.url} ${item.category} ${item.description}`.toLowerCase();
         return matchesCategory && searchable.includes(normalizedQuery);
       })
@@ -121,7 +168,7 @@ function App() {
     setForm((current) => ({ ...current, [field]: value }));
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
 
     const title = form.title.trim();
@@ -131,23 +178,49 @@ function App() {
 
     if (!title || !url || !description) return;
 
-    setLinks((current) => [
-      {
-        id: crypto.randomUUID(),
-        title,
-        url,
-        category,
-        description,
-        createdAt: new Date().toISOString(),
-      },
-      ...current,
-    ]);
-    setActiveCategory("ทั้งหมด");
-    setForm({ title: "", url: "", category: "", description: "" });
+    const newLink = {
+      id: crypto.randomUUID(),
+      title,
+      url,
+      category,
+      description,
+      createdAt: new Date().toISOString(),
+    };
+
+    try {
+      setIsSaving(true);
+      if (SHEETS_API_URL) {
+        const data = await sheetsRequest({ action: "create", link: newLink });
+        setLinks((current) => [data.link || newLink, ...current]);
+        setStatus("บันทึกลง Google Sheets แล้ว");
+      } else {
+        setLinks((current) => [newLink, ...current]);
+        setStatus("บันทึกในเครื่อง เพราะยังไม่ได้เชื่อม Google Sheets");
+      }
+      setActiveCategory(ALL_CATEGORY);
+      setForm({ title: "", url: "", category: "", description: "" });
+    } catch (error) {
+      setStatus(`บันทึกไม่สำเร็จ: ${error.message}`);
+    } finally {
+      setIsSaving(false);
+    }
   }
 
-  function removeLink(id) {
-    setLinks((current) => current.filter((item) => item.id !== id));
+  async function removeLink(id) {
+    try {
+      setIsSaving(true);
+      if (SHEETS_API_URL) {
+        await sheetsRequest({ action: "delete", id });
+        setStatus("ลบจาก Google Sheets แล้ว");
+      } else {
+        setStatus("ลบจากข้อมูลในเครื่องแล้ว");
+      }
+      setLinks((current) => current.filter((item) => item.id !== id));
+    } catch (error) {
+      setStatus(`ลบไม่สำเร็จ: ${error.message}`);
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   async function copyLink(item) {
@@ -244,11 +317,19 @@ function App() {
 
             <button
               type="submit"
-              className="mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-teal-600 px-4 text-sm font-semibold text-white transition hover:bg-teal-700"
+              disabled={isSaving}
+              className="mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-teal-600 px-4 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:bg-teal-300"
             >
-              <Plus size={18} />
-              เพิ่มเข้าคลังลิงก์
+              {isSaving ? <Loader2 className="animate-spin" size={18} /> : <Plus size={18} />}
+              {isSaving ? "กำลังบันทึก" : "เพิ่มเข้าคลังลิงก์"}
             </button>
+
+            <div className="mt-4 rounded-lg border border-zinc-200 bg-white p-3 text-sm leading-6 text-zinc-600">
+              <div className="flex items-start gap-2">
+                <Globe2 className={isSheetsConnected ? "mt-0.5 text-teal-600" : "mt-0.5 text-amber-600"} size={17} />
+                <p>{status}</p>
+              </div>
+            </div>
           </form>
         </aside>
 
@@ -294,7 +375,14 @@ function App() {
             </select>
           </div>
 
-          {filteredLinks.length > 0 ? (
+          {isLoading ? (
+            <div className="mt-5 flex min-h-80 items-center justify-center rounded-lg border border-zinc-200 bg-zinc-50 p-8 text-center">
+              <div>
+                <Loader2 className="mx-auto animate-spin text-teal-600" size={28} />
+                <h3 className="mt-4 text-lg font-semibold">กำลังโหลดข้อมูลจาก Google Sheets</h3>
+              </div>
+            </div>
+          ) : filteredLinks.length > 0 ? (
             <div className="mt-5 grid gap-4 xl:grid-cols-2">
               {filteredLinks.map((item) => (
                 <article key={item.id} className="link-card">
@@ -327,10 +415,10 @@ function App() {
                       <ExternalLink size={16} />
                     </a>
                     <div className="flex items-center gap-2">
-                      <IconButton label="คัดลอกลิงก์" onClick={() => copyLink(item)}>
+                      <IconButton label="คัดลอกลิงก์" onClick={() => copyLink(item)} disabled={isSaving}>
                         {copiedId === item.id ? <Check size={17} /> : <Copy size={17} />}
                       </IconButton>
-                      <IconButton label="ลบลิงก์" onClick={() => removeLink(item.id)} danger>
+                      <IconButton label="ลบลิงก์" onClick={() => removeLink(item.id)} danger disabled={isSaving}>
                         <Trash2 size={17} />
                       </IconButton>
                     </div>
@@ -366,14 +454,15 @@ function Field({ label, children }) {
   );
 }
 
-function IconButton({ label, onClick, danger = false, children }) {
+function IconButton({ label, onClick, danger = false, disabled = false, children }) {
   return (
     <button
       type="button"
       aria-label={label}
       title={label}
       onClick={onClick}
-      className={`inline-flex h-10 w-10 items-center justify-center rounded-lg border text-sm transition ${
+      disabled={disabled}
+      className={`inline-flex h-10 w-10 items-center justify-center rounded-lg border text-sm transition disabled:cursor-not-allowed disabled:opacity-55 ${
         danger
           ? "border-red-100 bg-red-50 text-red-600 hover:border-red-200 hover:bg-red-100"
           : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50"
